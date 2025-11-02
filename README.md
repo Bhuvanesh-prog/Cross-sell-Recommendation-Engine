@@ -125,17 +125,14 @@
    ```bash
    pip install -r requirements.txt
    ```
-2. **Execute the Sample Pipeline** – Runs the bronze→silver→gold flow using the bundled orders, products, and customers CSVs (metadata can be overridden with CLI flags) and writes JSON tables into `.lakehouse/`.
+2. **Execute the Sample Pipeline** – Runs the bronze→silver→gold flow using the bundled CSV and writes JSON tables into `.lakehouse/`.
    ```bash
-   python scripts/run_pipeline.py --lakehouse-root .lakehouse \
-       --orders data/sample_orders.csv \
-       --products data/sample_products.csv \
-       --customers data/sample_customers.csv
+   python scripts/run_pipeline.py --lakehouse-root .lakehouse
    ```
-3. **Inspect Outputs** – Generated gold tables mirror the PostgreSQL marts defined in the architecture and now include human-readable metadata (product names, categories, customer segments).
-   - `.lakehouse/gold/assoc_rules.json` → `/rules/{id}` API payloads with `lhs_details`/`rhs_details` context.
-   - `.lakehouse/gold/item_similarity.json` → `/recommend/item/{id}` responses enriched with product catalog attributes.
-   - `.lakehouse/gold/user_recommendations.json` → `/recommend/user/{id}` results annotated with customer segments and loyalty tiers.
+3. **Inspect Outputs** – Generated gold tables mirror the PostgreSQL marts defined in the architecture.
+   - `.lakehouse/gold/assoc_rules.json` → `/rules/{id}` API payloads.
+   - `.lakehouse/gold/item_similarity.json` → `/recommend/item/{id}` responses.
+   - `.lakehouse/gold/user_recommendations.json` → `/recommend/user/{id}` results.
 4. **Run Automated Checks**
    ```bash
    pytest
@@ -147,7 +144,7 @@ The sample code demonstrates how the medallion pipeline, FP-Growth mining, and A
 2. **Bootstrap Data Lake:**
    - Create Unity Catalog metastore, assign to Databricks workspace, configure external location pointing to ADLS containers (`bronze`, `silver`, `gold`).
 3. **Sample Data Ingestion:**
-   - Upload sample CSVs (`orders.csv`, `products.csv`, `customers.csv`) to `bronze` container.
+   - Upload sample CSVs (`orders.csv`, `products.csv`, `users.csv`) to `bronze` container.
    - Trigger Data Factory pipeline `ingest_orders` to land files into `bronze.orders_raw` Delta table.
 4. **Databricks Notebook Execution:**
    - Run notebooks: `00_bronze_to_silver`, `01_silver_to_gold`, `02_fp_growth`, `03_als_training`, `04_postgres_sync` using job clusters.
