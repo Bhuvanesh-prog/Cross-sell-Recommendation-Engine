@@ -1,0 +1,1 @@
+# Optional dependencies placeholder. The sample pipeline relies solely on the Python standard library.
