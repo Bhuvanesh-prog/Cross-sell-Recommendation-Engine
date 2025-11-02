@@ -5,32 +5,23 @@ import argparse
 import sys
 from pathlib import Path
 
+from src.cross_sell.config import ModelConfig, PipelineConfig
+from src.cross_sell.workflows.pipeline import run_pipeline
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-
-from cross_sell.config import ModelConfig, PipelineConfig
-from cross_sell.workflows.pipeline import run_pipeline
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+
+    project_root = Path(__file__).resolve().parents[2]  # go up from src/cross_sell/workflows/
+    default_orders = project_root / "data" / "sample_orders.csv"
     parser.add_argument(
         "--orders",
         type=Path,
         default=Path("data/sample_orders.csv"),
         help="Path to the raw orders CSV file.",
-    )
-    parser.add_argument(
-        "--products",
-        type=Path,
-        default=Path("data/sample_products.csv"),
-        help="Path to the product catalog CSV file.",
-    )
-    parser.add_argument(
-        "--customers",
-        type=Path,
-        default=Path("data/sample_customers.csv"),
-        help="Path to the customer dimension CSV file.",
     )
     parser.add_argument(
         "--lakehouse-root",
@@ -53,8 +44,6 @@ def main() -> None:
     config = PipelineConfig(
         lakehouse_root=args.lakehouse_root,
         orders_source=args.orders,
-        products_source=args.products,
-        customers_source=args.customers,
         model=ModelConfig(
             min_support=args.min_support,
             min_confidence=args.min_confidence,

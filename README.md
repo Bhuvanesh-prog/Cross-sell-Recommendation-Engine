@@ -125,39 +125,26 @@
    ```bash
    pip install -r requirements.txt
    ```
-2. **Execute the Sample Pipeline** – Runs the bronze→silver→gold flow using the bundled orders, products, and customers CSVs (metadata can be overridden with CLI flags) and writes JSON tables into `.lakehouse/`.
+2. **Execute the Sample Pipeline** – Runs the bronze→silver→gold flow using the bundled CSV and writes JSON tables into `.lakehouse/`.
    ```bash
-   python scripts/run_pipeline.py --lakehouse-root .lakehouse \
-       --orders data/sample_orders.csv \
-       --products data/sample_products.csv \
-       --customers data/sample_customers.csv
+   python scripts/run_pipeline.py --lakehouse-root .lakehouse
    ```
-3. **Inspect Outputs** – Generated gold tables mirror the PostgreSQL marts defined in the architecture and now include human-readable metadata (product names, categories, customer segments).
-   - `.lakehouse/gold/assoc_rules.json` → `/rules/{id}` API payloads with `lhs_details`/`rhs_details` context.
-   - `.lakehouse/gold/item_similarity.json` → `/recommend/item/{id}` responses enriched with product catalog attributes.
-   - `.lakehouse/gold/user_recommendations.json` → `/recommend/user/{id}` results annotated with customer segments and loyalty tiers.
+3. **Inspect Outputs** – Generated gold tables mirror the PostgreSQL marts defined in the architecture.
+   - `.lakehouse/gold/assoc_rules.json` → `/rules/{id}` API payloads.
+   - `.lakehouse/gold/item_similarity.json` → `/recommend/item/{id}` responses.
+   - `.lakehouse/gold/user_recommendations.json` → `/recommend/user/{id}` results.
 4. **Run Automated Checks**
    ```bash
    pytest
    ```
 
 The sample code demonstrates how the medallion pipeline, FP-Growth mining, and ALS collaborative filtering components interact before being lifted-and-shifted to Azure Databricks and PostgreSQL in production.
-
-### Alternative Input Channels (Beyond CSV Uploads)
-
-While the quick-start flow leans on local CSVs for simplicity, the architecture and codebase can source transactions, catalog data, and customer profiles from richer enterprise systems:
-
-- **Direct CRM/ERP Connectors:** Use Azure Data Factory or Synapse pipelines with the native Salesforce Dynamics 365, SAP, or Oracle connectors to land incremental extracts straight into the **bronze** container. The bundled ingestion classes (`cross_sell.data.ingestion`) already accept iterables of `OrderRecord`, `ProductRecord`, and `CustomerRecord`, so you can swap the CSV reader with a connector that pages through CRM APIs and yields the same dataclasses.
-- **Streaming & REST APIs:** Publish near-real-time events into Event Hubs or Azure Service Bus, then run a lightweight consumer (Databricks Structured Streaming job or Azure Function) that translates JSON payloads into the bronze schema. For on-demand pulls from partner APIs, schedule a Databricks notebook (or `scripts/run_pipeline.py`) with a custom loader that calls the remote endpoint (via `requests`/`aiohttp`) and feeds the response objects into the ingestion pipeline.
-- **Manual or Analyst-Curated Data:** When business teams need to test hypotheses without upstream integrations, they can input orders through Power Apps/Forms or Databricks Delta tables maintained via the SQL editor. As long as the manually created rows adhere to the same column contract (order/user/product identifiers, quantities, timestamps), they can be promoted from bronze to silver using the existing validation steps; pytest fixtures (`tests/`) illustrate how to construct in-memory datasets for this purpose.
-
-In each case, enforce the same schema and quality gates outlined in the testing plan so downstream FP-Growth and ALS stages remain stable. The medallion layout and PostgreSQL sync logic are agnostic to whether the records originated from files, APIs, or human-entered staging tables.
 1. **Provision Infrastructure:**
    - Apply Terraform stack (`terraform init/plan/apply`) with environment variables for subscription, region, admin principals.
 2. **Bootstrap Data Lake:**
    - Create Unity Catalog metastore, assign to Databricks workspace, configure external location pointing to ADLS containers (`bronze`, `silver`, `gold`).
 3. **Sample Data Ingestion:**
-   - Upload sample CSVs (`orders.csv`, `products.csv`, `customers.csv`) to `bronze` container.
+   - Upload sample CSVs (`orders.csv`, `products.csv`, `users.csv`) to `bronze` container.
    - Trigger Data Factory pipeline `ingest_orders` to land files into `bronze.orders_raw` Delta table.
 4. **Databricks Notebook Execution:**
    - Run notebooks: `00_bronze_to_silver`, `01_silver_to_gold`, `02_fp_growth`, `03_als_training`, `04_postgres_sync` using job clusters.
