@@ -5,15 +5,18 @@ import argparse
 import sys
 from pathlib import Path
 
+from src.cross_sell.config import ModelConfig, PipelineConfig
+from src.cross_sell.workflows.pipeline import run_pipeline
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-
-from cross_sell.config import ModelConfig, PipelineConfig
-from cross_sell.workflows.pipeline import run_pipeline
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
+
+    project_root = Path(__file__).resolve().parents[2]  # go up from src/cross_sell/workflows/
+    default_orders = project_root / "data" / "sample_orders.csv"
     parser.add_argument(
         "--orders",
         type=Path,
