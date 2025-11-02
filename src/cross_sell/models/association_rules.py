@@ -142,6 +142,7 @@ def generate_association_rules(
     frequent_itemsets: Dict[Tuple[str, ...], int],
     total_transactions: int,
     min_confidence: float,
+    min_lift: float,
 ) -> List[Dict[str, object]]:
     rows: List[Dict[str, object]] = []
     if total_transactions == 0:
@@ -163,6 +164,8 @@ def generate_association_rules(
                 if confidence < min_confidence:
                     continue
                 lift = confidence / rhs_support if rhs_support else 0.0
+                if lift < min_lift:
+                    continue
                 rows.append(
                     {
                         "lhs": list(lhs),
@@ -186,6 +189,12 @@ def mine_rules(orders: Sequence[OrderRecord], config: ModelConfig) -> Associatio
         }
         for itemset, support_count in sorted(frequent_itemsets.items(), key=lambda x: (len(x[0]), x[0]))
     ]
+    rules = generate_association_rules(
+        frequent_itemsets,
+        len(transactions),
+        config.min_confidence,
+        config.min_lift,
+    )
     rules = generate_association_rules(frequent_itemsets, len(transactions), config.min_confidence)
     return AssociationRuleResult(itemsets=itemsets, rules=rules)
 

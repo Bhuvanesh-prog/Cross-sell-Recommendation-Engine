@@ -28,6 +28,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--min-support", type=float, default=0.1)
     parser.add_argument("--min-confidence", type=float, default=0.3)
+    parser.add_argument("--min-lift", type=float, default=1.0)
     parser.add_argument("--top-k", type=int, default=5)
     parser.add_argument("--als-factors", type=int, default=8)
     parser.add_argument("--als-regularization", type=float, default=0.1)
@@ -43,6 +44,7 @@ def main() -> None:
         model=ModelConfig(
             min_support=args.min_support,
             min_confidence=args.min_confidence,
+            min_lift=args.min_lift,
             top_k=args.top_k,
             als_factors=args.als_factors,
             als_regularization=args.als_regularization,

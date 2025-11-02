@@ -28,6 +28,7 @@ class ModelConfig:
 
     min_support: float = 0.1
     min_confidence: float = 0.3
+    min_lift: float = 1.0
     top_k: int = 5
     als_factors: int = 8
     als_regularization: float = 0.1
