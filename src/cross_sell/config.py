@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -42,8 +41,6 @@ class PipelineConfig:
 
     lakehouse_root: Path
     orders_source: Path
-    products_source: Optional[Path] = Path("data/sample_products.csv")
-    customers_source: Optional[Path] = Path("data/sample_customers.csv")
     model: ModelConfig = field(default_factory=ModelConfig)
 
     @property

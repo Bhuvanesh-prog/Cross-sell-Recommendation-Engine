@@ -121,88 +121,30 @@
 
 ### Local Analytics Sandbox
 
-1. **Install Python Dependencies** – Required for the product admin UI and CLI utilities.
+1. **(Optional) Install Python Dependencies** – The sample pipeline relies only on the Python standard library, so this step is needed only if you want parity with a richer environment.
    ```bash
    pip install -r requirements.txt
    ```
-2. **Execute the Sample Pipeline** – Runs the bronze→silver→gold flow using the bundled orders, products, and customers CSVs (metadata can be overridden with CLI flags) and writes JSON tables into `.lakehouse/`.
+2. **Execute the Sample Pipeline** – Runs the bronze→silver→gold flow using the bundled CSV and writes JSON tables into `.lakehouse/`.
    ```bash
-   python scripts/run_pipeline.py --lakehouse-root .lakehouse \
-       --orders data/sample_orders.csv \
-       --products data/sample_products.csv \
-       --customers data/sample_customers.csv
+   python scripts/run_pipeline.py --lakehouse-root .lakehouse
    ```
-3. **Inspect Outputs** – Generated gold tables mirror the PostgreSQL marts defined in the architecture and now include human-readable metadata (product names, categories, customer segments).
-   - `.lakehouse/gold/assoc_rules.json` → `/rules/{id}` API payloads with `lhs_details`/`rhs_details` context.
-   - `.lakehouse/gold/item_similarity.json` → `/recommend/item/{id}` responses enriched with product catalog attributes.
-   - `.lakehouse/gold/user_recommendations.json` → `/recommend/user/{id}` results annotated with customer segments and loyalty tiers.
+3. **Inspect Outputs** – Generated gold tables mirror the PostgreSQL marts defined in the architecture.
+   - `.lakehouse/gold/assoc_rules.json` → `/rules/{id}` API payloads.
+   - `.lakehouse/gold/item_similarity.json` → `/recommend/item/{id}` responses.
+   - `.lakehouse/gold/user_recommendations.json` → `/recommend/user/{id}` results.
 4. **Run Automated Checks**
    ```bash
    pytest
    ```
 
 The sample code demonstrates how the medallion pipeline, FP-Growth mining, and ALS collaborative filtering components interact before being lifted-and-shifted to Azure Databricks and PostgreSQL in production.
-
-### Alternative Input Channels (Beyond CSV Uploads)
-
-While the quick-start flow leans on local CSVs for simplicity, the architecture and codebase can source transactions, catalog data, and customer profiles from richer enterprise systems:
-
-- **Direct CRM/ERP Connectors:** Use Azure Data Factory or Synapse pipelines with the native Salesforce Dynamics 365, SAP, or Oracle connectors to land incremental extracts straight into the **bronze** container. The bundled ingestion classes (`cross_sell.data.ingestion`) already accept iterables of `OrderRecord`, `ProductRecord`, and `CustomerRecord`, so you can swap the CSV reader with a connector that pages through CRM APIs and yields the same dataclasses.
-- **Streaming & REST APIs:** Publish near-real-time events into Event Hubs or Azure Service Bus, then run a lightweight consumer (Databricks Structured Streaming job or Azure Function) that translates JSON payloads into the bronze schema. For on-demand pulls from partner APIs, schedule a Databricks notebook (or `scripts/run_pipeline.py`) with a custom loader that calls the remote endpoint (via `requests`/`aiohttp`) and feeds the response objects into the ingestion pipeline.
-- **Manual or Analyst-Curated Data:** When business teams need to test hypotheses without upstream integrations, they can input orders through Power Apps/Forms or Databricks Delta tables maintained via the SQL editor. As long as the manually created rows adhere to the same column contract (order/user/product identifiers, quantities, timestamps), they can be promoted from bronze to silver using the existing validation steps; pytest fixtures (`tests/`) illustrate how to construct in-memory datasets for this purpose.
-
-In each case, enforce the same schema and quality gates outlined in the testing plan so downstream FP-Growth and ALS stages remain stable. The medallion layout and PostgreSQL sync logic are agnostic to whether the records originated from files, APIs, or human-entered staging tables.
-
-### Product Admin UI (Manual Catalog Curation)
-
-Business users can capture or correct catalog details through a lightweight FastAPI experience bundled with the repo:
-
-1. **Launch the UI locally**
-   ```bash
-   uvicorn app.main:app --reload
-   ```
-   The application stores submissions in `data/user_products.csv` by default. Set `PRODUCT_STORE_PATH=/path/to/products.csv` to change the backing file (for example, to point at a mounted ADLS path).
-2. **Add or update products** – Navigate to `http://127.0.0.1:8000` and fill in the form. Records are upserted by `product_id` and can augment the existing sample catalog.
-3. **Feed the pipeline** – Pass the captured CSV to the pipeline CLI so the new metadata flows into silver/gold layers:
-   ```bash
-   python scripts/run_pipeline.py --lakehouse-root .lakehouse \
-       --products data/user_products.csv
-   ```
-   (Combine with `--orders`/`--customers` flags as needed. When omitted, the defaults fall back to the bundled sample data.)
-
-The `ProductStore` helper in `src/cross_sell/service/product_store.py` reuses the ingestion dataclasses, so the same schema rules and pytest coverage protect both manual inputs and automated feeds.
-
-### Angular Dashboard (Product Intake + Recommendation Preview)
-
-An Angular single-page app is provided under `frontend/angular-dashboard/` for teams that prefer a richer dashboard experience when curating catalog updates and validating recommendations in the same screen.
-
-1. **Install Node dependencies** (requires Node 18+ and npm):
-   ```bash
-   cd frontend/angular-dashboard
-   npm install
-   ```
-2. **Run the development server** (served on port 4200 by default):
-   ```bash
-   npm start
-   ```
-   Ensure the FastAPI backend is running (`uvicorn app.main:app --reload`) so the dashboard can call `/api/products` and `/api/recommendations/{product_id}`.
-3. **Use the dashboard** – Add a product via the form; the app posts JSON payloads to the FastAPI API, immediately refreshes the catalog list, and queries the latest item-to-item recommendations stored in `.lakehouse/gold/item_similarity.json`.
-4. **Build for production** – Run `npm run build` to create static assets in `frontend/angular-dashboard/dist/dashboard/browser`. Setting `ANGULAR_DASHBOARD_DIST` when starting Uvicorn allows FastAPI to serve the compiled dashboard at `/dashboard`.
-
-Environment flags exposed by `app/main.py`:
-
-- `PRODUCT_STORE_PATH` – Absolute/relative CSV file used to persist catalog submissions (defaults to `data/user_products.csv`).
-- `LAKEHOUSE_ROOT` – Lakehouse directory providing `gold/item_similarity.json` used for product-to-product recommendations (defaults to `.lakehouse_ui_demo`).
-- `ANGULAR_DASHBOARD_DIST` – Path to a built Angular dashboard (defaults to `frontend/angular-dashboard/dist/dashboard/browser` when present).
-
-### Azure Deployment Tasks (End-to-End Stack)
-
 1. **Provision Infrastructure:**
    - Apply Terraform stack (`terraform init/plan/apply`) with environment variables for subscription, region, admin principals.
 2. **Bootstrap Data Lake:**
    - Create Unity Catalog metastore, assign to Databricks workspace, configure external location pointing to ADLS containers (`bronze`, `silver`, `gold`).
 3. **Sample Data Ingestion:**
-   - Upload sample CSVs (`orders.csv`, `products.csv`, `customers.csv`) to `bronze` container.
+   - Upload sample CSVs (`orders.csv`, `products.csv`, `users.csv`) to `bronze` container.
    - Trigger Data Factory pipeline `ingest_orders` to land files into `bronze.orders_raw` Delta table.
 4. **Databricks Notebook Execution:**
    - Run notebooks: `00_bronze_to_silver`, `01_silver_to_gold`, `02_fp_growth`, `03_als_training`, `04_postgres_sync` using job clusters.
@@ -216,20 +158,6 @@ Environment flags exposed by `app/main.py`:
    - Enable private endpoints, configure Entra ID app registrations for API and Power BI, assign RBAC roles.
 8. **Monitoring & Alerting:**
    - Configure Application Insights dashboards, Azure Monitor alerts, and Databricks job notifications.
-
-### Azure Deployment Tasks for the Product Admin UI
-
-To run the manual product-entry interface within Azure alongside the broader recommendation stack:
-
-1. **Containerize the FastAPI app** – Use the provided `app/main.py` entrypoint in a lightweight Python image. Include `requirements.txt` during the build so FastAPI, Uvicorn, and Jinja2 are available.
-2. **Publish to Azure Container Registry (ACR)** – Push the image and grant pull access to the App Service or Container Apps managed identity.
-3. **Deploy on Azure App Service or Container Apps** – Configure `PRODUCT_STORE_PATH` to reference an Azure Files share, ADLS path mounted via Blobfuse, or (in production) an API endpoint that proxies writes into Databricks/SQL. Attach the deployment to the same virtual network as the data services and enable managed identity.
-4. **Protect with Entra ID** – Register the application in Entra ID, require sign-in for catalog editors, and scope roles so only authorized merchandisers can submit changes. Use App Service authentication or an OAuth2 middleware for FastAPI.
-5. **Persist catalog updates** – For production, point the store at a durable location such as:
-   - An ADLS Gen2 container (bronze `products_manual` folder) ingested by the Databricks bronze job, or
-   - A PostgreSQL table (`manual_products`) with stored procedures that merge entries into the master `products` dimension.
-6. **Integrate with Databricks pipelines** – Extend the Bronze→Silver notebook to union the manual submissions with upstream feeds, applying Great Expectations checks to prevent malformed inputs.
-7. **Monitor usage** – Emit request logs and custom metrics (product submissions per day, validation failures) to Application Insights. Configure alerts if manual updates fail so merchandisers receive feedback.
 
 ---
 **Diagram (Conceptual Flow):**
