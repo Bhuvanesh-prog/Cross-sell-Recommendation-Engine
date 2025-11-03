@@ -195,6 +195,7 @@ def mine_rules(orders: Sequence[OrderRecord], config: ModelConfig) -> Associatio
         config.min_confidence,
         config.min_lift,
     )
+    rules = generate_association_rules(frequent_itemsets, len(transactions), config.min_confidence,  config.min_lift)
     return AssociationRuleResult(itemsets=itemsets, rules=rules)
 
 
