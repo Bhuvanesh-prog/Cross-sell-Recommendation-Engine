@@ -1,0 +1,89 @@
+<div class="layout">
+  <header class="hero">
+    <h1>{{ title }}</h1>
+    <p>Capture new catalog items and preview cross-sell recommendations sourced from the lakehouse gold zone.</p>
+  </header>
+
+  <section class="card">
+    <h2>Add or Update Product</h2>
+    <form [formGroup]="productForm" (ngSubmit)="submit()" novalidate>
+      <div class="grid">
+        <label>
+          <span>Product ID</span>
+          <input formControlName="product_id" placeholder="SKU-123" />
+        </label>
+        <label>
+          <span>Name</span>
+          <input formControlName="name" placeholder="Wireless Mouse" />
+        </label>
+        <label>
+          <span>Category</span>
+          <input formControlName="category" placeholder="Accessories" />
+        </label>
+        <label>
+          <span>Subcategory</span>
+          <input formControlName="subcategory" placeholder="Peripherals" />
+        </label>
+        <label>
+          <span>Brand</span>
+          <input formControlName="brand" placeholder="Contoso" />
+        </label>
+        <label>
+          <span>Base Price</span>
+          <input type="number" formControlName="base_price" min="0" step="0.01" />
+        </label>
+      </div>
+      <button type="submit" [disabled]="loading">{{ loading ? 'Saving...' : 'Save Product' }}</button>
+    </form>
+    <div class="messages">
+      <p class="error" *ngIf="error">{{ error }}</p>
+      <p class="success" *ngIf="success">{{ success }}</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Catalog Snapshot</h2>
+    <p *ngIf="products.length === 0" class="empty">No products captured yet. Add one with the form above.</p>
+    <ul class="product-list">
+      <li
+        *ngFor="let product of products"
+        [class.selected]="product.product_id === selectedProductId"
+        (click)="selectProduct(product.product_id)"
+      >
+        <div>
+          <strong>{{ product.name }}</strong>
+          <small>{{ product.product_id }} · {{ product.category }}</small>
+        </div>
+        <span>
+          {{ product.base_price || 0 | currency:'USD':'symbol':'1.2-2' }}
+        </span>
+      </li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>Recommendations</h2>
+    <p *ngIf="!selectedProductId" class="empty">Select a product above to view recommended complements.</p>
+    <p *ngIf="selectedProductId && recommendations.length === 0" class="empty">
+      No recommendations available. Ensure the pipeline has produced item similarity rows for this product.
+    </p>
+    <table *ngIf="recommendations.length > 0">
+      <thead>
+        <tr>
+          <th>Suggested Product</th>
+          <th>Category</th>
+          <th>Brand</th>
+          <th>Score</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let rec of recommendations">
+          <td>{{ rec['similar_product_name'] || rec['similar_product_id'] }}</td>
+          <td>{{ rec['similar_product_category'] || '—' }}</td>
+          <td>{{ rec['similar_product_brand'] || '—' }}</td>
+          <td>{{ rec['score'] | number:'1.2-2' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</div>

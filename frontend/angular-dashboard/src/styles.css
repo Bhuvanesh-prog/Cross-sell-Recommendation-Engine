@@ -1,0 +1,18 @@
+:root {
+  color-scheme: light;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f4f6f8;
+  color: #1f2933;
+}
+
+a {
+  color: #2563eb;
+}
+
+button {
+  cursor: pointer;
+}
