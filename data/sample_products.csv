@@ -1,0 +1,11 @@
+product_id,name,category,subcategory,brand,base_price
+P001,Wireless Mouse,Peripherals,Input Devices,Contoso Tech,19.99
+P002,Mechanical Keyboard,Peripherals,Input Devices,Contoso Tech,24.50
+P003,Laptop Sleeve,Accessories,Cases,Fabrikam Gear,12.00
+P004,USB-C Cable,Accessories,Cables,Fabrikam Gear,4.99
+P005,Wireless Charger,Accessories,Power,Fabrikam Gear,7.50
+P006,Ergonomic Stand,Accessories,Workstations,Northwind Office,15.00
+P007,Noise-Cancel Headset,Audio,Headphones,Northwind Audio,29.99
+P008,4K Monitor,Displays,Desktop,Adventure Works,39.99
+P009,Portable SSD,Storage,External Drives,Adventure Works,89.99
+P010,Webcam Pro,Peripherals,Video,Contoso Tech,59.00
