@@ -171,6 +171,32 @@ Business users can capture or correct catalog details through a lightweight Fast
    (Combine with `--orders`/`--customers` flags as needed. When omitted, the defaults fall back to the bundled sample data.)
 
 The `ProductStore` helper in `src/cross_sell/service/product_store.py` reuses the ingestion dataclasses, so the same schema rules and pytest coverage protect both manual inputs and automated feeds.
+
+### Angular Dashboard (Product Intake + Recommendation Preview)
+
+An Angular single-page app is provided under `frontend/angular-dashboard/` for teams that prefer a richer dashboard experience when curating catalog updates and validating recommendations in the same screen.
+
+1. **Install Node dependencies** (requires Node 18+ and npm):
+   ```bash
+   cd frontend/angular-dashboard
+   npm install
+   ```
+2. **Run the development server** (served on port 4200 by default):
+   ```bash
+   npm start
+   ```
+   Ensure the FastAPI backend is running (`uvicorn app.main:app --reload`) so the dashboard can call `/api/products` and `/api/recommendations/{product_id}`.
+3. **Use the dashboard** – Add a product via the form; the app posts JSON payloads to the FastAPI API, immediately refreshes the catalog list, and queries the latest item-to-item recommendations stored in `.lakehouse/gold/item_similarity.json`.
+4. **Build for production** – Run `npm run build` to create static assets in `frontend/angular-dashboard/dist/dashboard/browser`. Setting `ANGULAR_DASHBOARD_DIST` when starting Uvicorn allows FastAPI to serve the compiled dashboard at `/dashboard`.
+
+Environment flags exposed by `app/main.py`:
+
+- `PRODUCT_STORE_PATH` – Absolute/relative CSV file used to persist catalog submissions (defaults to `data/user_products.csv`).
+- `LAKEHOUSE_ROOT` – Lakehouse directory providing `gold/item_similarity.json` used for product-to-product recommendations (defaults to `.lakehouse_ui_demo`).
+- `ANGULAR_DASHBOARD_DIST` – Path to a built Angular dashboard (defaults to `frontend/angular-dashboard/dist/dashboard/browser` when present).
+
+### Azure Deployment Tasks (End-to-End Stack)
+
 1. **Provision Infrastructure:**
    - Apply Terraform stack (`terraform init/plan/apply`) with environment variables for subscription, region, admin principals.
 2. **Bootstrap Data Lake:**
